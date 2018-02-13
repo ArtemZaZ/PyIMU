@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/PythonModule.dir/main.cpp.o CMakeFiles/PythonModule.dir/PyIMUlib.cpp.o CMakeFiles/PythonModule.dir/MajvikFilter.cpp.o CMakeFiles/PythonModule.dir/Quaternion.cpp.o  -o PythonModule 
