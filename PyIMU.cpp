@@ -9,8 +9,8 @@ static PyObject* PyIMUError;
 
 //static MajvikFilter filter;
 
-//static PyTypeObject PyFilter_Type;   // тип данных фильтра
-//#define PyFilter_Check(x) ((x) -> ob_type == &PyFilter_Type)        // ф-ия проверки фильтр ли это
+static PyTypeObject PyMFilter_Type;   // тип данных фильтра
+#define PyMFilter_Check(x) ((x) -> ob_type == &PyMFilter_Type)        // ф-ия проверки фильтр ли это
 
 
 /*
@@ -37,18 +37,78 @@ typedef struct                              // структура объекта
     float roll;
 } PyMFilterObject;
 
+/*
+static void MFilter_dealloc(PyMFilterObject* self)
+{
+    PyObject_Del(self);
+}
+*/
+static void MFilter_dealloc(PyMFilterObject* self)
+{
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+/*
+static PyObject* PyMFilter_new(float beta)
+{
+    PyMFilterObject* self;
+
+    self = PyObject_New(PyMFilterObject, &PyMFilter_Type);
+    if(self != NULL)
+    {
+        self -> yaw = 0.f;
+        self -> pitch = 0.f;
+        self -> roll = 0.f;
+        self -> beta = 0.f;
+    }
+    return (PyObject*)self;
+}
+*/
+
+
+static PyObject* PyMFilter_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    PyMFilterObject* self;
+
+    self = (PyMFilterObject *)type->tp_alloc(type, 0);
+    if(self != NULL)
+    {
+        self -> yaw = 0.f;
+        self -> pitch = 0.f;
+        self -> roll = 0.f;
+        self -> beta = 0.f;
+    }
+    return (PyObject*)self;
+}
+
+/*
+static PyObject* MFilter(PyMFilterObject *self, PyObject *args)
+{
+    float beta;
+    if(!PyArg_ParseTuple(args, "f", &beta)) return NULL;
+    return PyMFilter_new(beta);
+}
+ */
 
 static int MFilter_init(PyMFilterObject *self, PyObject *args)
 {
-    if(!PyArg_ParseTuple(args, "f", self->beta)) return -1;
+    if(! PyArg_ParseTuple(args, "f", &self -> beta)) return -1;
     return 0;
 }
-
-static PyObject* updateAngle(PyMFilterObject *self, PyObject *args, PyObject *kwds)
+/*
+static PyObject* MFilter_updateAngle(PyMFilterObject *self, PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"yaw", "pitch", "roll", NULL};
     if(!PyArg_ParseTupleAndKeywords(args, kwds, "fff", kwlist, self->yaw, self->pitch, self->roll))
         return NULL;
+    return PyLong_FromLong(1);
+}
+*/
+static PyObject* MFilter_updateAngle(PyMFilterObject *self, PyObject *args)
+{
+    if(!PyArg_ParseTuple(args, "fff", &self->yaw, &self->pitch, &self->roll))
+        return NULL;
+    return PyLong_FromLong(1);
 }
 
 static PyMemberDef PyIMU_members[] =        // переменные
@@ -57,56 +117,64 @@ static PyMemberDef PyIMU_members[] =        // переменные
                 {"yaw",   T_FLOAT, offsetof(PyMFilterObject, yaw),   0, "yaw angle"},
                 {"pitch", T_FLOAT, offsetof(PyMFilterObject, pitch), 0, "pitch angle"},
                 {"roll",  T_FLOAT, offsetof(PyMFilterObject, roll),  0, "roll angle"},
-                {NULL}  /* Sentinel */
+                {NULL}  // Sentinel
         };
 
+static PyMethodDef PyMFilter_methods[] =
+        {
+                {"updateAngle", MFilter_updateAngle, METH_VARARGS, "TempUpdateAngle"},
+                {NULL} // Sentinel
+        };
+
+
+static PyTypeObject PyMFilter_Type = {
+        PyVarObject_HEAD_INIT(NULL, 0)
+        "PyIMU.MFilter",            // tp_name
+        sizeof(PyMFilterObject),    // basic size
+        0,                          // tp_itemsize
+        MFilter_dealloc,// tp_dealloc
+        0,                          // tp_print
+        (destructor)MFilter_dealloc,                          // tp_getattr
+        0,                          // tp_setattr
+        0,                          // tp_reserved
+        0,                          // tp_repr
+        0,                          // tp_as_number
+        0,                          // tp_as_sequence
+        0,                          // tp_as_mapping
+        0,                          // tp_hash
+        0,                          // tp_call
+        0,                          // tp_str
+        0,                          // tp_getattro
+        0,                          // tp_setattro
+        0,                          // tp_as_buffer
+        0,                          // tp_flags
+        "MajvikFilter object",      // tp_doc
+        0,                         // tp_traverse
+        0,                         // tp_clear
+        0,                         // tp_richcompare
+        0,                         // tp_weaklistoffset
+        0,                         // tp_iter
+        0,                         // tp_iternext
+        PyMFilter_methods,         // tp_methods
+        PyIMU_members,             // tp_members
+        0,                         // tp_getset
+        0,                         // tp_base
+        0,                         // tp_dict
+        0,                         // tp_descr_get
+        0,                         // tp_descr_set
+        0,                         // tp_dictoffset
+        (initproc)MFilter_init,    // tp_init
+        0,                         // tp_alloc
+        PyMFilter_new,               // tp_new
+};
+
+/*
 static PyMethodDef PyIMU_methods[] =
         {
-                {"updateAngle", (PyCFunction)updateAngle, METH_VARARGS, "TempUpdateAngle"},
-                {NULL} /* Sentinel */
+                { "MFilter", (PyCFunction)MFilter, METH_VARARGS, "method for initialize Majvik filter"},
+                { NULL, NULL, 0, NULL }
         };
-
-
-static PyTypeObject PyFilter_Type = {
-        PyVarObject_HEAD_INIT(NULL, 0)
-        "PyIMU.MFilter",            /* tp_name */
-        sizeof(PyMFilterObject),    /* basic size */
-        0,                          /* tp_itemsize */
-        0,                          /* tp_dealloc */
-        0,                          /* tp_print */
-        0,                          /* tp_getattr */
-        0,                          /* tp_setattr */
-        0,                          /* tp_reserved */
-        0,                          /* tp_repr */
-        0,                          /* tp_as_number */
-        0,                          /* tp_as_sequence */
-        0,                          /* tp_as_mapping */
-        0,                          /* tp_hash  */
-        0,                          /* tp_call */
-        0,                          /* tp_str */
-        0,                          /* tp_getattro */
-        0,                          /* tp_setattro */
-        0,                          /* tp_as_buffer */
-        0,                          /* tp_flags */
-        "MajvikFilter object",      /* tp_doc */
-        0,                         /* tp_traverse */
-        0,                         /* tp_clear */
-        0,                         /* tp_richcompare */
-        0,                         /* tp_weaklistoffset */
-        0,                         /* tp_iter */
-        0,                         /* tp_iternext */
-        PyIMU_methods,             /* tp_methods */
-        PyIMU_members,             /* tp_members */
-        0,                         /* tp_getset */
-        0,                         /* tp_base */
-        0,                         /* tp_dict */
-        0,                         /* tp_descr_get */
-        0,                         /* tp_descr_set */
-        0,                         /* tp_dictoffset */
-        (initproc)MFilter_init,    /* tp_init */
-        0,                         /* tp_alloc */
-        0,                         /* tp_new */
-};
+*/
 
 static PyModuleDef PyIMUModule =
         {
@@ -114,20 +182,25 @@ static PyModuleDef PyIMUModule =
             "PyIMU",
             "Module for IMU sensor"
             -1,
-            NULL, NULL, NULL, NULL, NULL
+            NULL,
+            NULL, NULL, NULL, NULL
         };
 
 PyMODINIT_FUNC PyInit_PyIMU(void)
 {
     PyObject* m;
-    PyFilter_Type.tp_new = PyType_GenericNew;
-    if(PyType_Ready(&PyFilter_Type) < 0) return NULL;
+    //PyMFilter_Type.tp_new = PyType_GenericNew;
+    if(PyType_Ready(&PyMFilter_Type) < 0) return NULL;
 
     m = PyModule_Create(&PyIMUModule);
     if(m == NULL) return NULL;
 
-    Py_INCREF(&PyFilter_Type);
-    PyModule_AddObject(m, "MFilter", (PyObject*)&PyFilter_Type);
+    PyIMUError = PyErr_NewException("PyIMU.error", NULL, NULL);
+    Py_INCREF(PyIMUError);
+    PyModule_AddObject(m, "error", PyIMUError);
+
+    Py_INCREF(&PyMFilter_Type);
+    PyModule_AddObject(m, "MFilter", (PyObject *)&PyMFilter_Type);
     return m;
 }
 
