@@ -106,23 +106,23 @@ static PyObject* MFilter_updateAngle(PyMFilterObject *self, PyObject *args, PyOb
 */
 static PyObject* MFilter_updateAngle(PyMFilterObject *self, PyObject *args)
 {
-    if(!PyArg_ParseTuple(args, "fff", &self->yaw, &self->pitch, &self->roll))
+    if(!PyArg_ParseTuple(args, "|fff", &self->yaw, &self->pitch, &self->roll))
         return NULL;
     return PyLong_FromLong(1);
 }
 
 static PyMemberDef PyIMU_members[] =        // переменные
         {
-                {"beta",  T_FLOAT, offsetof(PyMFilterObject, beta),  0, "beta parameter"},
-                {"yaw",   T_FLOAT, offsetof(PyMFilterObject, yaw),   0, "yaw angle"},
-                {"pitch", T_FLOAT, offsetof(PyMFilterObject, pitch), 0, "pitch angle"},
-                {"roll",  T_FLOAT, offsetof(PyMFilterObject, roll),  0, "roll angle"},
+                {"beta",  T_FLOAT, offsetof(PyMFilterObject, beta),  READONLY, "beta parameter"},
+                {"yaw",   T_FLOAT, offsetof(PyMFilterObject, yaw),   READONLY, "yaw angle"},
+                {"pitch", T_FLOAT, offsetof(PyMFilterObject, pitch), READONLY, "pitch angle"},
+                {"roll",  T_FLOAT, offsetof(PyMFilterObject, roll),  READONLY, "roll angle"},
                 {NULL}  // Sentinel
         };
 
 static PyMethodDef PyMFilter_methods[] =
         {
-                {"updateAngle", MFilter_updateAngle, METH_VARARGS, "TempUpdateAngle"},
+                {"updateAngle", (PyCFunction)MFilter_updateAngle, METH_VARARGS, "TempUpdateAngle"},
                 {NULL} // Sentinel
         };
 
@@ -132,9 +132,9 @@ static PyTypeObject PyMFilter_Type = {
         "PyIMU.MFilter",            // tp_name
         sizeof(PyMFilterObject),    // basic size
         0,                          // tp_itemsize
-        MFilter_dealloc,// tp_dealloc
+        (destructor)MFilter_dealloc, // tp_dealloc
         0,                          // tp_print
-        (destructor)MFilter_dealloc,                          // tp_getattr
+        0,                         // tp_getattr
         0,                          // tp_setattr
         0,                          // tp_reserved
         0,                          // tp_repr
@@ -147,7 +147,7 @@ static PyTypeObject PyMFilter_Type = {
         0,                          // tp_getattro
         0,                          // tp_setattro
         0,                          // tp_as_buffer
-        0,                          // tp_flags
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,         // tp_flags
         "MajvikFilter object",      // tp_doc
         0,                         // tp_traverse
         0,                         // tp_clear
